@@ -1,15 +1,25 @@
-import { Client, GatewayIntentBits, SlashCommandBuilder } from "discord.js";
+import sodium from "libsodium-wrappers";
+
+import {
+  Client,
+  GatewayIntentBits,
+  SlashCommandBuilder
+} from "discord.js";
+
 import {
   joinVoiceChannel,
   createAudioPlayer,
-  createAudioResource,
-  AudioPlayerStatus
+  createAudioResource
 } from "@discordjs/voice";
+
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// WAIT FOR SODIUM
+await sodium.ready;
 
 const client = new Client({
   intents: [
@@ -27,12 +37,12 @@ client.once("ready", async () => {
   const commands = [
     new SlashCommandBuilder()
       .setName("join")
-      .setDescription("Join your voice channel"),
+      .setDescription("Join your VC"),
 
     new SlashCommandBuilder()
       .setName("play")
-      .setDescription("Play m.mp3 in voice channel")
-  ].map(cmd => cmd.toJSON());
+      .setDescription("Play m.mp3")
+  ].map(c => c.toJSON());
 
   await client.application.commands.set(commands);
 });
@@ -41,9 +51,11 @@ client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   const vc = interaction.member.voice.channel;
-  if (!vc) {
-    return interaction.reply({ content: "❌ Join a voice channel first!", ephemeral: true });
-  }
+  if (!vc)
+    return interaction.reply({
+      content: "❌ Join a VC first",
+      ephemeral: true
+    });
 
   if (interaction.commandName === "join") {
     connection = joinVoiceChannel({
@@ -52,7 +64,7 @@ client.on("interactionCreate", async interaction => {
       adapterCreator: vc.guild.voiceAdapterCreator
     });
 
-    return interaction.reply("🔊 Joined your voice channel!");
+    return interaction.reply("🔊 Joined VC");
   }
 
   if (interaction.commandName === "play") {
@@ -71,7 +83,7 @@ client.on("interactionCreate", async interaction => {
     connection.subscribe(player);
     player.play(resource);
 
-    return interaction.reply("🎶 Playing **m.mp3**");
+    return interaction.reply("🎶 Playing m.mp3");
   }
 });
 
