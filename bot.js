@@ -1,4 +1,4 @@
-import sodium from "libsodium-wrappers";
+import "dotenv/config";
 
 import {
   Client,
@@ -9,7 +9,8 @@ import {
 import {
   joinVoiceChannel,
   createAudioPlayer,
-  createAudioResource
+  createAudioResource,
+  NoSubscriberBehavior
 } from "@discordjs/voice";
 
 import path from "path";
@@ -18,9 +19,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// WAIT FOR SODIUM
-await sodium.ready;
-
+// Discord client
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -29,34 +28,52 @@ const client = new Client({
 });
 
 let connection;
-const player = createAudioPlayer();
+const player = createAudioPlayer({
+  behaviors: {
+    noSubscriber: NoSubscriberBehavior.Play
+  }
+});
 
+// READY
 client.once("ready", async () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
 
   const commands = [
     new SlashCommandBuilder()
       .setName("join")
-      .setDescription("Join your VC"),
+      .setDescription("Join your voice channel"),
 
     new SlashCommandBuilder()
       .setName("play")
-      .setDescription("Play m.mp3")
+      .setDescription("Play mp3")
+      .addStringOption(o =>
+        o
+          .setName("file")
+          .setDescription("Choose file")
+          .setRequired(true)
+          .addChoices(
+            { name: "m.mp3", value: "m" },
+            { name: "a.mp3", value: "a" }
+          )
+      )
   ].map(c => c.toJSON());
 
   await client.application.commands.set(commands);
 });
 
+// COMMANDS
 client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   const vc = interaction.member.voice.channel;
-  if (!vc)
+  if (!vc) {
     return interaction.reply({
-      content: "❌ Join a VC first",
+      content: "❌ Join a voice channel first",
       ephemeral: true
     });
+  }
 
+  // JOIN
   if (interaction.commandName === "join") {
     connection = joinVoiceChannel({
       channelId: vc.id,
@@ -64,10 +81,14 @@ client.on("interactionCreate", async interaction => {
       adapterCreator: vc.guild.voiceAdapterCreator
     });
 
-    return interaction.reply("🔊 Joined VC");
+    return interaction.reply("🔊 Joined your VC");
   }
 
+  // PLAY
   if (interaction.commandName === "play") {
+    const file = interaction.options.getString("file");
+    const mp3 = file === "a" ? "a.mp3" : "m.mp3";
+
     if (!connection) {
       connection = joinVoiceChannel({
         channelId: vc.id,
@@ -77,14 +98,15 @@ client.on("interactionCreate", async interaction => {
     }
 
     const resource = createAudioResource(
-      path.join(__dirname, "m.mp3")
+      path.join(__dirname, mp3)
     );
 
     connection.subscribe(player);
     player.play(resource);
 
-    return interaction.reply("🎶 Playing m.mp3");
+    return interaction.reply(`🎶 Playing **${mp3}**`);
   }
 });
 
+// LOGIN
 client.login(process.env.TOKEN);
