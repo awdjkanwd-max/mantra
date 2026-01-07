@@ -1,16 +1,15 @@
 {
-  "name": "vc-mp3-bot",
+  "name": "mantra",
   "version": "1.0.0",
-  "main": "bot.js",
   "type": "module",
+  "main": "n.js",
   "scripts": {
     "start": "node bot.js"
   },
-{
   "dependencies": {
     "discord.js": "^14.16.3",
-    "@discordjs/voice": "^0.16.1",
+    "@discordjs/voice": "^0.18.0",
     "ffmpeg-static": "^5.2.0",
-    "libsodium-wrappers": "^0.7.13"
+    "dotenv": "^16.4.5"
   }
 }
